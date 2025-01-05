@@ -205,7 +205,7 @@ func (d *Daemon) RunOnce(ctx context.Context) error {
 								expiresAt = SunsetDate
 							}
 
-							entitlement, err := d.db.Entitlements.Create(ctx, tx, utils.Ptr(existingGuild.GuildId), utils.Ptr(userId), skuId, common.EntitlementSourcePatreon, expiresAt)
+							entitlement, err := d.db.Entitlements.Create(ctx, tx, utils.Ptr(existingGuild.GuildId), utils.Ptr(userId), skuId, common.EntitlementSourcePatreon, &expiresAt)
 							if err != nil {
 								d.logger.Error("Failed to create entitlement", zap.Uint64("user_id", userId), zap.Uint64("guild_id", existingGuild.GuildId), zap.Error(err))
 								return err
@@ -239,7 +239,7 @@ func (d *Daemon) RunOnce(ctx context.Context) error {
 			}
 
 			// Create entitlement in main entitlement table
-			entitlement, err := d.db.Entitlements.Create(ctx, tx, nil, utils.Ptr(userId), skuId, common.EntitlementSourcePatreon, expiresAt)
+			entitlement, err := d.db.Entitlements.Create(ctx, tx, nil, utils.Ptr(userId), skuId, common.EntitlementSourcePatreon, &expiresAt)
 			if err != nil {
 				d.logger.Error("Failed to create entitlement", zap.Uint64("user_id", userId), zap.Error(err))
 				return err
