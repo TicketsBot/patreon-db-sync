@@ -21,6 +21,8 @@ type Daemon struct {
 	patreon *patreonproxy.Client
 }
 
+var SunsetDate = time.Date(2025, time.March, 5, 23, 59, 0, 0, time.UTC)
+
 func NewDaemon(config config.Config, db *database.Database, logger *zap.Logger, patreon *patreonproxy.Client) *Daemon {
 	return &Daemon{
 		config:  config,
@@ -198,7 +200,12 @@ func (d *Daemon) RunOnce(ctx context.Context) error {
 						}
 
 						for _, existingGuild := range existingGuilds {
-							entitlement, err := d.db.Entitlements.Create(ctx, tx, utils.Ptr(existingGuild.GuildId), utils.Ptr(userId), skuId, common.EntitlementSourcePatreon, nil)
+							expiresAt := topEntitlement.ExpiresAt
+							if expiresAt.Before(SunsetDate) {
+								expiresAt = SunsetDate
+							}
+
+							entitlement, err := d.db.Entitlements.Create(ctx, tx, utils.Ptr(existingGuild.GuildId), utils.Ptr(userId), skuId, common.EntitlementSourcePatreon, expiresAt)
 							if err != nil {
 								d.logger.Error("Failed to create entitlement", zap.Uint64("user_id", userId), zap.Uint64("guild_id", existingGuild.GuildId), zap.Error(err))
 								return err
@@ -226,8 +233,13 @@ func (d *Daemon) RunOnce(ctx context.Context) error {
 		}
 
 		if topEntitlement.IsLegacy {
+			expiresAt := topEntitlement.ExpiresAt
+			if expiresAt.Before(SunsetDate) {
+				expiresAt = SunsetDate
+			}
+
 			// Create entitlement in main entitlement table
-			entitlement, err := d.db.Entitlements.Create(ctx, tx, nil, utils.Ptr(userId), skuId, common.EntitlementSourcePatreon, nil)
+			entitlement, err := d.db.Entitlements.Create(ctx, tx, nil, utils.Ptr(userId), skuId, common.EntitlementSourcePatreon, expiresAt)
 			if err != nil {
 				d.logger.Error("Failed to create entitlement", zap.Uint64("user_id", userId), zap.Error(err))
 				return err
